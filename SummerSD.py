@@ -10,7 +10,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 國家中英文對照字典 (涵蓋 SummerSD.csv 中所有 129 個國家/地區)
+# 定義現代感金銀銅進階配色 (霧金、銀灰、古銅)
+MEDAL_COLORS = {
+    '金牌': '#E5A93C',  # 霧金
+    '銀牌': '#B0B7BD',  # 鈦金灰
+    '銅牌': '#CD7F32'   # 古銅色
+}
+
+# 2. 國家中英文對照字典
 COUNTRY_TRANSLATION = {
     'Hungary': '匈牙利', 'Austria': '奧地利', 'Greece': '希臘', 'United States': '美國', 
     'Germany': '德國', 'United Kingdom': '英國', 'France': '法國', 'Australia': '澳洲', 
@@ -33,7 +40,7 @@ COUNTRY_TRANSLATION = {
     'China': '中國', "Cote d'Ivoire": '象牙海岸', 'Zambia': '尚比亞', 'Dominican Republic': '多明尼加', 
     'Algeria': '阿爾及利亞', 'Syria': '敘利亞', 'Suriname': '蘇利南', 'Costa Rica': '哥斯大黎加', 
     'Indonesia': '印尼', 'Senegal': '塞內加爾', 'Djibouti': '吉布地', 'Netherlands Antilles*': '荷屬安地列斯', 
-    'Virgin Islands*': '美屬維京群島', 'Namibia': '納米比亞', 'Qatar': '卡達', 'Lithuania': '立陶宛', 
+    'Virgin Islands*': '美屬維京群島', 'Namibia': '納米比亞', 'Qatar': '卡達', 'Lithuania': '立宛陶', 
     'Malaysia': '馬來西亞', 'Croatia': '克羅埃西亞', 'Israel': '以色列', 'Slovenia': '斯洛維尼亞', 
     'Russia': '俄羅斯', 'Ukraine': '烏克蘭', 'Ecuador': '厄瓜多', 'Burundi': '蒲隆地', 
     'Mozambique': '莫桑比克', 'Czech Republic': '捷克', 'Belarus': '白俄羅斯', 'Tonga': '東加', 
@@ -47,20 +54,35 @@ COUNTRY_TRANSLATION = {
     'Gabon': '加彭'
 }
 
+# 夏季奧運運動項目中英文對照字典
+SPORT_TRANSLATION = {
+    'Aquatics': '水上運動', 'Athletics': '田徑', 'Rowing': '划船', 'Basketball': '籃球', 
+    'Shooting': '射擊', 'Gymnastics': '體操', 'Weightlifting': '舉重', 'Fencing': '擊劍', 
+    'Wrestling': '角力', 'Cycling': '自由車', 'Sailing': '帆船', 'Equestrianism': '馬術', 
+    'Tennis': '網球', 'Badminton': '羽球', 'Table Tennis': '桌球', 'Volleyball': '排球', 
+    'Handball': '手球', 'Archery': '射箭', 'Judo': '柔道', 'Taekwondo': '跆拳道', 
+    'Boxing': '拳擊', 'Canoeing': '輕艇', 'Football': '足球', 'Hockey': '曲棍球',
+    'Modern Pentathlon': '現代五項', 'Triathlon': '鐵人三項', 'Golf': '高爾夫', 
+    'Rugby Sevens': '七人制橄欖球', 'Rugby': '橄欖球', 'Tug of War': '拔河', 
+    'Baseball': '棒球', 'Softball': '壘球', 'Cricket': '板球', 'Polo': '馬球', 
+    'Lacrosse': '袋棍球', 'Ice Hockey': '冰球', 'Figure Skating': '花式滑冰',
+    'Surfing': '衝浪', 'Skateboarding': '滑板', 'Sport Climbing': '運動攀登', 
+    'Karate': '空手道', 'Breaking': '霹靂舞'
+}
+
 # 3. 讀取與處理資料
 @st.cache_data
 def load_data():
     df = pd.read_csv("SummerSD.csv")
     df['Year'] = df['Year'].astype(int)
     
-    # 核心改動：將英文國家對照字典轉換成中文，若字典找不到則保留原名
+    # 欄位中文化
     df['Country'] = df['Country'].map(COUNTRY_TRANSLATION).fillna(df['Country'])
+    df['Sport'] = df['Sport'].map(SPORT_TRANSLATION).fillna(df['Sport'])
     
-    # 同步把性別也翻譯一下，讓介面更精緻
     gender_map = {'Men': '男子組', 'Women': '女子組'}
     df['Gender'] = df['Gender'].map(gender_map).fillna(df['Gender'])
     
-    # 同步把獎牌翻譯一下
     medal_map = {'Gold': '金牌', 'Silver': '銀牌', 'Bronze': '銅牌'}
     df['Medal'] = df['Medal'].map(medal_map).fillna(df['Medal'])
     
@@ -108,8 +130,14 @@ with col4:
 
 st.write("---")
 
-# 7. 分頁設計 (Tabs)
-tab1, tab2, tab3 = st.tabs(["📊 國家獎牌榜分析", "📈 國家歷年趨勢", "📋 原始資料檢視"])
+# 7. 分頁設計
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📊 國家獎牌榜分析", 
+    "📈 國家歷年趨勢", 
+    "⏳ 歷年強權動態爭霸", 
+    "🔬 奧運深度專題研究", 
+    "📋 原始資料檢視"
+])
 
 # --- Tab 1: 國家獎牌榜分析 ---
 with tab1:
@@ -129,16 +157,54 @@ with tab1:
         
         fig_bar = px.bar(
             plot_df,
-            x='Country',
-            y='數量',
+            y='Country',           
+            x='數量',              
             color='Medal',
+            orientation='h',       
             title="前 10 大獲獎國家獎牌結構圖",
             labels={'數量': '獎牌數量', 'Country': '國家', 'Medal': '獎牌'},
-            color_discrete_map={'金牌': '#FFD700', '銀牌': '#C0C0C0', '銅牌': '#CD7F32'},
-            category_orders={'Medal': ['金牌', '銀牌', '銅牌'], 'Country': top_countries}
+            color_discrete_map=MEDAL_COLORS, 
+            category_orders={'Medal': ['金牌', '銀牌', '銅牌'], 'Country': top_countries} 
         )
-        fig_bar.update_layout(xaxis_categoryorder='total descending')
+        fig_bar.update_layout(
+            barmode='stack',
+            xaxis_title="獎牌總數量",
+            yaxis_title="國家 (依總數由上至下排名)",
+            legend_title="獎牌類型",
+            height=450
+        )
         st.plotly_chart(fig_bar, use_container_width=True)
+        
+        st.write("---")
+        
+        # 強權項目實力矩陣熱圖
+        st.subheader("🌡️ 強權國家 vs 運動項目：實力對比矩陣熱圖")
+        top_sports = filtered_df['Sport'].value_counts().head(15).index.tolist()
+        heatmap_data = filtered_df[
+            (filtered_df['Country'].isin(top_countries)) & 
+            (filtered_df['Sport'].isin(top_sports))
+        ]
+        
+        if not heatmap_data.empty:
+            heatmap_pivot = heatmap_data.groupby(['Sport', 'Country']).size().reset_index(name='獎牌數')
+            
+            fig_heatmap = px.density_heatmap(
+                heatmap_pivot,
+                x="Country",
+                y="Sport",
+                z="獎牌數",
+                text_auto=True,
+                color_continuous_scale="YlOrRd",
+                title="Top 10 國家在 Top 15 運動項目中的實力矩陣 (格子顏色越深代表獎牌拿越多)",
+                category_orders={"Country": top_countries, "Sport": top_sports}
+            )
+            fig_heatmap.update_layout(
+                height=550, 
+                xaxis_title="獲獎國家", 
+                yaxis_title="運動項目",
+                coloraxis_colorbar=dict(title="獎牌數")
+            )
+            st.plotly_chart(fig_heatmap, use_container_width=True)
     else:
         st.warning("⚠️ 目前篩選條件下無數據，請調整左側篩選面板。")
 
@@ -147,43 +213,184 @@ with tab2:
     st.subheader("📈 單一國家歷年獎牌走勢")
     
     all_countries = sorted(df['Country'].dropna().unique())
-    # 預設改選「美國」
     default_index = all_countries.index("美國") if "美國" in all_countries else 0
     target_country = st.selectbox("請選擇要分析的國家：", options=all_countries, index=default_index)
     
-    country_df = df[df['Country'] == target_country]
+    country_df = df[
+        (df['Country'] == target_country) &
+        (df['Year'].isin(selected_years)) &
+        (df['Gender'].isin(selected_genders)) &
+        (df['Medal'].isin(selected_medals))
+    ]
     
     if not country_df.empty:
         trend_df = country_df.groupby(['Year', 'Medal']).size().reset_index(name='數量')
-        fig_trend = px.line(
+        trend_df = trend_df.sort_values('Year')
+        
+        fig_trend = px.area(
             trend_df,
             x='Year',
             y='數量',
             color='Medal',
-            markers=True,
             title=f"【{target_country}】歷屆奧運獎牌數量變化趨勢",
-            labels={'數量': '獎牌數', 'Year': '年份', 'Medal': '獎牌'},
-            color_discrete_map={'金牌': '#FFD700', '銀牌': '#C0C0C0', '銅牌': '#CD7F32'}
+            labels={'數量': '當屆獎牌數', 'Year': '年份', 'Medal': '獎牌'},
+            color_discrete_map=MEDAL_COLORS,
+            category_orders={'Medal': ['金牌', '銀牌', '銅牌']}
+        )
+        fig_trend.update_layout(
+            xaxis=dict(type='category', categoryorder='category ascending'),
+            yaxis_title="獲獎總數量 (外輪廓線為當屆總數)",
+            hovermode="x unified",
+            legend_title="獎牌類型"
         )
         st.plotly_chart(fig_trend, use_container_width=True)
         
-        st.write(f"💡 **【{target_country}】最擅長的運動項目項目 (前 5 名)**")
-        sport_df = country_df['Sport'].value_counts().head(5).reset_index()
-        sport_df.columns = ['運動項目', '累計獎牌數']
+        st.write("---")
+        # 多維度交叉旭日圖
+        st.subheader("🔬 獲獎結構深度探索 (點擊內圈可下鑽看男女組/獎牌細分)")
         
-        fig_sport = px.pie(
-            sport_df,
-            names='運動項目',
-            values='累計獎牌數',
-            hole=0.4,
-            color_discrete_sequence=px.colors.sequential.YlOrRd_r
+        top_5_sports = country_df['Sport'].value_counts().head(5).index.tolist()
+        sunburst_df = country_df[country_df['Sport'].isin(top_5_sports)]
+        
+        fig_sunburst = px.sunburst(
+            sunburst_df,
+            path=['Sport', 'Gender', 'Medal'],  
+            color='Medal',
+            color_discrete_map=MEDAL_COLORS,
+            title=f"【{target_country}】前五大擅長運動項目之交叉結構圖"
         )
-        st.plotly_chart(fig_sport, use_container_width=True)
+        fig_sunburst.update_traces(sort=False)
+        fig_sunburst.update_layout(height=550)
+        st.plotly_chart(fig_sunburst, use_container_width=True)
     else:
         st.info("該國家在當前篩選條件下未獲得獎牌。")
 
-# --- Tab 3: 原始資料檢視 ---
+# --- Tab 3: 歷年強權動態爭霸 ---
 with tab3:
+    st.subheader("⏳ 歷史強權動態爭霸戰")
+    st.write("點擊圖形左下角的 **▶ Play 播放鍵**，觀看歷屆奧運各國實力版圖的興衰消長！")
+    
+    dynamic_df = df.groupby(['Year', 'Country', 'Medal']).size().reset_index(name='數量')
+    dynamic_pivot = dynamic_df.pivot(index=['Year', 'Country'], columns='Medal', values='數量').reset_index().fillna(0)
+    
+    for col in ['金牌', '銀牌', '銅牌']:
+        if col not in dynamic_pivot.columns:
+            dynamic_pivot[col] = 0
+            
+    dynamic_pivot['總獎牌數'] = dynamic_pivot['金牌'] + dynamic_pivot['銀牌'] + dynamic_pivot['銅牌']
+    dynamic_pivot = dynamic_pivot.sort_values('Year')
+    
+    fig_animation = px.scatter(
+        dynamic_pivot,
+        x="銀牌",           
+        y="金牌",           
+        animation_frame="Year",     
+        animation_group="Country",   
+        size="總獎牌數",             
+        color="Country",             
+        hover_name="Country",
+        size_max=60,                 
+        range_x=[-5, dynamic_pivot['銀牌'].max() + 5],  
+        range_y=[-5, dynamic_pivot['金牌'].max() + 5],  
+        title="歷屆奧運各國【金牌 vs 銀牌】動態消長軌跡",
+        labels={'金牌': '金牌數量', '銀牌': '銀牌數量', 'Year': '年份'}
+    )
+    fig_animation.update_layout(showlegend=False, height=650)
+    st.plotly_chart(fig_animation, use_container_width=True)
+
+# --- Tab 4: 奧運深度專題研究 ---
+with tab4:
+    st.header("🔬 數據科學專題特輯")
+    research_topic = st.radio(
+        "💡 請選擇你想探索的奧運數據故事：",
+        options=[
+            "🥇 視角一：誰是「含金量」最高的效率強權？", 
+            "🤼 視角二：單一運動項目的「世界霸主興衰史」", 
+            "♀️ 視角三：歷史時間軸上的「奧運女力崛起軌跡」"
+        ],
+        horizontal=True
+    )
+    st.write("---")
+    
+    # 專題一：含金量效率排行 (💡 這裡已經修正完成！)
+    if research_topic == "🥇 視角一：誰是「含金量」最高的效率強權？":
+        st.subheader("🏆 各國獎牌「含金量與結構」大對決")
+        
+        eff_df = df.groupby(['Country', 'Medal']).size().reset_index(name='數量')
+        eff_pivot = eff_df.pivot(index='Country', columns='Medal', values='數量').fillna(0).reset_index()
+        eff_pivot['總數'] = eff_pivot['金牌'] + eff_pivot['銀牌'] + eff_pivot['銅牌']
+        
+        eff_top20 = eff_pivot[eff_pivot['總數'] >= 50].sort_values('總數', ascending=False).head(20)
+        plot_eff_df = pd.melt(eff_top20, id_vars=['Country'], value_vars=['金牌', '銀牌', '銅牌'], value_name='數量')
+        
+        fig_eff = px.bar(
+            plot_eff_df,
+            x="Country",
+            y="數量",
+            color="Medal",
+            title="前 20 大奪牌強權的獎牌含金量百分比結構圖",
+            labels={'數量': '獎牌數量', 'Country': '國家', 'Medal': '獎牌類型'},
+            color_discrete_map=MEDAL_COLORS,
+            category_orders={'Medal': ['金牌', '銀牌', '銅牌']}
+        )
+        
+        # 使用 update_layout 來設定百分比轉換
+        fig_eff.update_layout(
+            barmode='stack',
+            barnorm='percent',
+            yaxis_title="獎牌佔比 (%)", 
+            height=500
+        )
+        st.plotly_chart(fig_eff, use_container_width=True)
+        st.info("💡 觀察指南：金色區塊（金牌）越高的國家，代表其奪牌效率與金牌純度越高！")
+
+    # 專題二：運動項目霸主興衰史
+    elif research_topic == "🤼 視角二：單一運動項目的「世界霸主興衰史」":
+        st.subheader("👑 運動項目國際版圖演進史")
+        
+        all_sports = sorted(df['Sport'].dropna().unique())
+        default_sport_idx = all_sports.index("柔道") if "柔道" in all_sports else 0
+        target_sport = st.selectbox("請選擇你想研究的運動項目：", options=all_sports, index=default_sport_idx)
+        
+        sport_hist = df[df['Sport'] == target_sport]
+        sport_hist_grouped = sport_hist.groupby(['Year', 'Country']).size().reset_index(name='當屆奪牌數')
+        
+        top_countries_in_sport = sport_hist['Country'].value_counts().head(5).index.tolist()
+        sport_hist_grouped['展示國家'] = sport_hist_grouped['Country'].apply(lambda x: x if x in top_countries_in_sport else '其他國家')
+        
+        fig_sport_hist = px.bar(
+            sport_hist_grouped,
+            x="Year",
+            y="當屆奪牌數",
+            color="展示國家",
+            title=f"【{target_sport}】歷屆奧運獎牌版圖強權推移走勢",
+            labels={'當屆奪牌數': '獎牌獲得數', 'Year': '年份'},
+            color_discrete_sequence=px.colors.qualitative.Dark24
+        )
+        fig_sport_hist.update_layout(xaxis=dict(type='category'), barmode='stack', height=550)
+        st.plotly_chart(fig_sport_hist, use_container_width=True)
+
+    # 專題三：奧運女力崛起圖
+    elif research_topic == "♀️ 視角三：歷史時間軸上的「奧運女力崛起軌跡」":
+        st.subheader("🏃‍♀️ 現代奧運性別平等與女力崛起趨勢")
+        
+        gender_hist = df.groupby(['Year', 'Gender']).size().reset_index(name='獲獎人數')
+        
+        fig_gender = px.line(
+            gender_hist,
+            x="Year",
+            y="獲獎人數",
+            color="Gender",
+            markers=True, 
+            title="歷屆夏季奧運【男子組 vs 女子組】獲獎人數趨勢交叉對比",
+            labels={'獲獎人數': '得獎運動員人次', 'Year': '年份', 'Gender': '組別'},
+            color_discrete_map={'男子組': '#1f77b4', '女子組': '#e377c2'} 
+        )
+        fig_gender.update_layout(xaxis=dict(type='category'), hovermode="x unified")
+        st.plotly_chart(fig_gender, use_container_width=True)
+
+# --- Tab 5: 原始資料檢視 ---
+with tab5:
     st.subheader("🔍 篩選後的原始資料明細")
     st.write(f"當前條件下共有 {len(filtered_df)} 筆得獎紀錄：")
     
