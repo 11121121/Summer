@@ -372,7 +372,7 @@ code_to_country_chinese = {
 }
 
 # =========================
-# 獎牌顏色：明顯區分
+# 獎牌顏色
 # =========================
 medal_colors = {
     "金牌": "#FFD700",
@@ -440,8 +440,14 @@ def load_data():
     if "Unnamed: 0" in df.columns:
         df = df.drop(columns=["Unnamed: 0"])
 
-    df["Code"] = df["Code"].fillna("Unknown")
-    df["Country"] = df["Country"].fillna("Unknown")
+    df["Code"] = df["Code"].fillna("Unknown").astype(str).str.strip().str.upper()
+    df["Country"] = df["Country"].fillna("Unknown").astype(str).str.strip()
+
+    df["Country"] = df["Country"].replace({
+        "": "Unknown",
+        "nan": "Unknown",
+        "None": "Unknown"
+    })
 
     df["Sport"] = df["Sport"].fillna("未知項目")
     df["Gender"] = df["Gender"].fillna("未知性別")
@@ -458,11 +464,11 @@ def load_data():
     df["國家"] = df["Country"].map(country_name_map)
     df["國家"] = df["國家"].fillna(df["Code"].map(code_to_country_chinese))
     df["國家"] = df["國家"].fillna(df["Country"])
-
     df.loc[df["國家"].isin(["Unknown", "Unknown Country", "未知國家"]), "國家"] = df["Code"].map(code_to_country_chinese)
     df["國家"] = df["國家"].fillna("未知國家")
 
     return df
+
 
 df = load_data()
 
@@ -514,7 +520,7 @@ top_n_country = st.sidebar.slider(
     "選擇顯示前幾名國家",
     min_value=3,
     max_value=30,
-    value=10,
+    value=5,
     step=1
 )
 
@@ -564,7 +570,6 @@ total_count = filtered_df.shape[0]
 
 country_count = filtered_df["國家"].nunique()
 sport_count_total = filtered_df["運動項目"].nunique()
-year_count = filtered_df["Year"].nunique()
 athlete_count = filtered_df["Athlete"].nunique()
 
 country_medals = (
@@ -779,7 +784,11 @@ elif page == "運動項目分析":
 
     st.divider()
 
-    st.subheader(f"🚻 前 {top_n_country} 名國家中，各運動項目性別獎牌分布")
+    st.subheader(f"🚻 前 {top_n_country} 名國家主要運動項目之性別獎牌分布")
+
+    st.write(
+        f"比較前 {top_n_country} 名國家在主要運動項目中，男性、女性與混合項目的獎牌數差異。"
+    )
 
     sport_gender = (
         sport_base[sport_base["運動項目"].isin(top_sport_names)]
@@ -794,7 +803,7 @@ elif page == "運動項目分析":
         y="獎牌數",
         color="性別",
         barmode="group",
-        title=f"前 {top_n_country} 名國家中，主要運動項目的男性、女性、混合項目獎牌數比較",
+        title=f"前 {top_n_country} 名國家主要運動項目之性別獎牌分布",
         text="獎牌數"
     )
 
@@ -836,7 +845,6 @@ elif page == "時間趨勢分析":
         height=560
     )
 
-    # 加上重要事件年份標記
     for event_year in [1900, 1964, 1980, 1984, 1992, 2000, 2012]:
         if selected_year_range[0] <= event_year <= selected_year_range[1]:
             fig_line.add_vline(
@@ -1152,6 +1160,27 @@ elif page == "背後原因解讀":
 
     st.divider()
 
+    st.subheader("📝 可直接放進報告的解讀文字")
+
+    st.markdown(
+        """
+        本研究的資料主要呈現夏季奧運獎牌結果，但若要理解背後原因，
+        需要搭配奧運歷史脈絡進行分析。首先，奧運比賽項目與小項會隨著年代增加，
+        因此獎牌數增加不一定只是競技實力提升，也可能是新增項目帶來更多獎牌機會。
+        
+        其次，早期女性參賽機會較少，直到後期女子項目逐漸增加，
+        才使女性獎牌資料量逐漸上升。因此，性別獎牌分布不只是運動表現差異，
+        也反映了奧運制度與性別參與機會的歷史變化。
+        
+        此外，1980 年莫斯科奧運與 1984 年洛杉磯奧運受到政治抵制影響，
+        部分國家缺席，可能導致特定年份的獎牌分布出現變化。
+        最後，主辦國優勢、國家運動資源與各運動項目的小項數量，
+        也都可能影響獎牌數據的呈現。
+        
+        因此，視覺化圖表呈現的是數據結果，而真正的解讀需要結合歷史事件、
+        項目制度與社會背景進行分析。
+        """
+    )
 
 # =========================
 # 資料表
